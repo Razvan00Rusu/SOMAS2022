@@ -80,6 +80,7 @@ func (t6 *Team6Agent) HandleFightInformation(message message.TaggedMessage, view
 	newUtility := uint(float32(t6.fightUtility.GetValOrDefault(message.Sender(), 70)) * fightUtilityMultiplier)
 	t6.fightUtility[message.Sender()] = newUtility
 
+	t6.calculateCurrentAction(message, view, agent, log)
 	agent.Log(logging.Trace, logging.LogField{"bravery": t6.bravery, "hp": agent.ViewState().Hp, "senderID": message.Sender(), "senderUtility": newUtility}, "Cowering")
 }
 
@@ -97,17 +98,17 @@ func (t6 *Team6Agent) HandleFightRequest(_ message.TaggedMessage, _ *state.View,
 // 	BonusDefense uint
 // }
 
-func (t6 Team6Agent) calculateCurrentAction(m message.TaggedMessage, view *state.View, agent agent.BaseAgent, log *immutable.Map[commons.ID, decision.FightAction]) {
+func (t6 *Team6Agent) calculateCurrentAction(m message.TaggedMessage, view *state.View, agent agent.BaseAgent, log *immutable.Map[commons.ID, decision.FightAction]) {
 
-	if agent.latestState.Hp > t6.max_hp_achieved {
-		t6.max_hp_achieved = agent.latestState.Hp
+	if agent.ViewState().Hp > t6.max_hp_achieved {
+		t6.max_hp_achieved = agent.ViewState().Hp
 	}
 	var canAttack, canDefend bool
-	canAttack = agent.latestState.Stamina > agent.latestState.BonusAttack
-	canDefend = agent.latestState.Stamina > agent.latestState.BonusDefense
+	canAttack = agent.ViewState().Stamina > agent.ViewState().BonusAttack
+	canDefend = agent.ViewState().Stamina > agent.ViewState().BonusDefense
 
 	// Low HP, therefore cower
-	if agent.latestState.Hp < float32(t6.max_hp_achieved)*0.2 {
+	if float32(agent.ViewState().Hp) < float32(t6.max_hp_achieved)*0.2 {
 		t6.currentAction = decision.Cower
 		return
 	}
