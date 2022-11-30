@@ -13,15 +13,16 @@ import (
 )
 
 type Team6Agent struct {
-	bravery int
+	bravery      uint
+	fightUtility MapDefault // rank of agents 0-100
 }
 
-func (r *Team6Agent) CreateManifesto(view *state.View, baseAgent agent.BaseAgent) *decision.Manifesto {
+func (t6 *Team6Agent) CreateManifesto(view *state.View, baseAgent agent.BaseAgent) *decision.Manifesto {
 	manifesto := decision.NewManifesto(true, false, 10, 50)
 	return manifesto
 }
 
-func (r *Team6Agent) HandleConfidencePoll(view *state.View, baseAgent agent.BaseAgent) decision.Intent {
+func (t6 *Team6Agent) HandleConfidencePoll(view *state.View, baseAgent agent.BaseAgent) decision.Intent {
 	switch rand.Intn(3) {
 	case 0:
 		return decision.Abstain
@@ -32,15 +33,59 @@ func (r *Team6Agent) HandleConfidencePoll(view *state.View, baseAgent agent.Base
 	}
 }
 
-func (r *Team6Agent) HandleFightInformation(_ message.TaggedMessage, _ *state.View, agent agent.BaseAgent, _ *immutable.Map[commons.ID, decision.FightAction]) {
-	agent.Log(logging.Trace, logging.LogField{"bravery": r.bravery, "hp": agent.ViewState().Hp}, "Cowering")
+func (t6 *Team6Agent) HandleFightInformation(message message.TaggedMessage, view *state.View, agent agent.BaseAgent, log *immutable.Map[commons.ID, decision.FightAction]) {
+	senderPreviousAction, ok := log.Get(message.Sender())
+	if !ok {
+		agent.Log(logging.Debug, logging.LogField{"senderID": message.Sender()}, "Message sender not in log")
+	}
+
+	agentState := view.AgentState()
+	senderState, ok2 := agentState.Get(message.Sender())
+	if !ok2 {
+		agent.Log(logging.Debug, logging.LogField{"senderID": message.Sender()}, "Message sender not in agentState view")
+	}
+	var fightUtilityMultiplier float32
+
+	switch senderState.Hp {
+	case state.HealthRange(state.LowHealth):
+		switch senderPreviousAction {
+		case decision.Attack:
+			fightUtilityMultiplier = 1.25
+		case decision.Defend:
+			fightUtilityMultiplier = 1.20
+		case decision.Cower:
+			fightUtilityMultiplier = 1.0 // their expected action
+		}
+	case state.HealthRange(state.MidHealth):
+		switch senderPreviousAction {
+		case decision.Attack:
+			fightUtilityMultiplier = 1.05
+		case decision.Defend:
+			fightUtilityMultiplier = 1.05
+		case decision.Cower:
+			fightUtilityMultiplier = 0.95
+		}
+	case state.HealthRange(state.HighHealth):
+		switch senderPreviousAction {
+		case decision.Attack:
+			fightUtilityMultiplier = 1.05
+		case decision.Defend:
+			fightUtilityMultiplier = 1.05
+		case decision.Cower:
+			fightUtilityMultiplier = 0.85
+		}
+	}
+	newUtility := uint(float32(t6.fightUtility.GetValOrDefault(message.Sender(), 70)) * fightUtilityMultiplier)
+	t6.fightUtility[message.Sender()] = newUtility
+
+	agent.Log(logging.Trace, logging.LogField{"bravery": t6.bravery, "hp": agent.ViewState().Hp, "senderID": message.Sender(), "senderUtility": newUtility}, "Cowering")
 }
 
-func (r *Team6Agent) HandleFightRequest(_ message.TaggedMessage, _ *state.View, _ *immutable.Map[commons.ID, decision.FightAction]) message.Payload {
+func (t6 *Team6Agent) HandleFightRequest(_ message.TaggedMessage, _ *state.View, _ *immutable.Map[commons.ID, decision.FightAction]) message.Payload {
 	return nil
 }
 
-func (r *Team6Agent) CurrentAction() decision.FightAction {
+func (t6 *Team6Agent) CurrentAction() decision.FightAction {
 	fight := rand.Intn(3)
 	switch fight {
 	case 0:
@@ -52,7 +97,7 @@ func (r *Team6Agent) CurrentAction() decision.FightAction {
 	}
 }
 
-func (r *Team6Agent) HandleElectionBallot(view *state.View, _ agent.BaseAgent, _ *decision.ElectionParams) decision.Ballot {
+func (t6 *Team6Agent) HandleElectionBallot(view *state.View, _ agent.BaseAgent, _ *decision.ElectionParams) decision.Ballot {
 	// Extract ID of alive agents
 	agentState := view.AgentState()
 	aliveAgentIds := make([]string, agentState.Len())
@@ -79,6 +124,6 @@ func (r *Team6Agent) HandleElectionBallot(view *state.View, _ agent.BaseAgent, _
 	return ballot
 }
 
-func NewRandomAgent() agent.Strategy {
-	return &Team6Agent{bravery: 0}
+func NewTeam6Agent() agent.Strategy {
+	return &Team6Agent{bravery: 0, fightUtility: make(map[commons.ID]uint)}
 }

@@ -6,7 +6,6 @@ import (
 	"infra/game/decision"
 	"infra/game/message"
 	"infra/game/state"
-	"infra/logging"
 	"math/rand"
 
 	"github.com/benbjohnson/immutable"
@@ -32,8 +31,15 @@ func (r *RandomAgent) HandleConfidencePoll(view *state.View, baseAgent agent.Bas
 	}
 }
 
-func (r *RandomAgent) HandleFightInformation(_ message.TaggedMessage, _ *state.View, agent agent.BaseAgent, _ *immutable.Map[commons.ID, decision.FightAction]) {
-	agent.Log(logging.Trace, logging.LogField{"bravery": r.bravery, "hp": agent.ViewState().Hp}, "Cowering")
+func (r *RandomAgent) HandleFightInformation(message message.TaggedMessage, _ *state.View, agent agent.BaseAgent, log *immutable.Map[commons.ID, decision.FightAction]) {
+	// fmt.Println(message.Sender())
+	_, ok := log.Get(message.Sender())
+	if !ok {
+		ok = false
+		// agent.Log(logging.Debug, logging.LogField{"senderID": message.Sender()}, "Message sender not in log")
+	}
+
+	// agent.Log(logging.Trace, logging.LogField{"bravery": r.bravery, "hp": agent.ViewState().Hp}, "Cowering")
 }
 
 func (r *RandomAgent) HandleFightRequest(_ message.TaggedMessage, _ *state.View, _ *immutable.Map[commons.ID, decision.FightAction]) message.Payload {
