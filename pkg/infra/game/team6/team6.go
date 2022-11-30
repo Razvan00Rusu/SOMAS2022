@@ -13,8 +13,10 @@ import (
 )
 
 type Team6Agent struct {
-	bravery      uint
-	fightUtility MapDefault // rank of agents 0-100
+	bravery         uint
+	fightUtility    MapDefault // opinion of agents from 0-100
+	max_hp_achieved uint
+	currentAction   decision.FightAction
 }
 
 func (t6 *Team6Agent) CreateManifesto(view *state.View, baseAgent agent.BaseAgent) *decision.Manifesto {
@@ -82,19 +84,62 @@ func (t6 *Team6Agent) HandleFightInformation(message message.TaggedMessage, view
 }
 
 func (t6 *Team6Agent) HandleFightRequest(_ message.TaggedMessage, _ *state.View, _ *immutable.Map[commons.ID, decision.FightAction]) message.Payload {
+	//Someone wants to know if we will fight? If we like them tell them, else say undecided?
 	return nil
 }
 
-func (t6 *Team6Agent) CurrentAction() decision.FightAction {
-	fight := rand.Intn(3)
-	switch fight {
-	case 0:
-		return decision.Cower
-	case 1:
-		return decision.Attack
-	default:
-		return decision.Defend
+// type AgentState struct {
+// 	Hp           uint
+// 	Stamina      uint
+// 	Attack       uint
+// 	Defense      uint
+// 	BonusAttack  uint
+// 	BonusDefense uint
+// }
+
+func (t6 Team6Agent) calculateCurrentAction(m message.TaggedMessage, view *state.View, agent agent.BaseAgent, log *immutable.Map[commons.ID, decision.FightAction]) {
+
+	if agent.latestState.Hp > t6.max_hp_achieved {
+		t6.max_hp_achieved = agent.latestState.Hp
 	}
+	var canAttack, canDefend bool
+	canAttack = agent.latestState.Stamina > agent.latestState.BonusAttack
+	canDefend = agent.latestState.Stamina > agent.latestState.BonusDefense
+
+	// Low HP, therefore cower
+	if agent.latestState.Hp < float32(t6.max_hp_achieved)*0.2 {
+		t6.currentAction = decision.Cower
+		return
+	}
+
+	if canAttack {
+		t6.currentAction = decision.Attack
+	} else if canDefend {
+		t6.currentAction = decision.Defend
+	} else {
+		t6.currentAction = decision.Cower
+	}
+
+}
+
+// If can defend && X agents are below 25% health, then ask them how much health they have. If many agents are close to dying, defend?
+
+func (t6 *Team6Agent) CurrentAction() decision.FightAction {
+	return t6.currentAction
+	// fight := rand.Intn(3)
+
+	// if t6.max_hp_achieved{
+
+	// }
+
+	// switch fight {
+	// case 0:
+	// 	return decision.Cower
+	// case 1:
+	// 	return decision.Attack
+	// default:
+	// 	return decision.Defend
+	// }
 }
 
 func (t6 *Team6Agent) HandleElectionBallot(view *state.View, _ agent.BaseAgent, _ *decision.ElectionParams) decision.Ballot {
@@ -125,5 +170,6 @@ func (t6 *Team6Agent) HandleElectionBallot(view *state.View, _ agent.BaseAgent, 
 }
 
 func NewTeam6Agent() agent.Strategy {
-	return &Team6Agent{bravery: 0, fightUtility: make(map[commons.ID]uint)}
+	return &Team6Agent{bravery: 0, fightUtility: make(map[commons.ID]uint), max_hp_achieved: 0}
+
 }

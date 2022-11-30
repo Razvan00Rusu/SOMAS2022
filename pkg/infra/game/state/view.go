@@ -18,7 +18,7 @@ type HealthRange uint
 type StaminaRange uint
 
 const (
-	LowHealth  uint = 250 // 25% starting HP
+	LowHealth  uint = 250 // 25% starting HP``
 	MidHealth  uint = 500
 	HighHealth uint = 750 // 75% starting HP
 )
