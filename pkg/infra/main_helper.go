@@ -49,13 +49,14 @@ func initGame() {
 	initGameConfig := stages.InitGameConfig()
 	gameConfig = &initGameConfig
 	defStrategyMap := stages.ChooseDefaultStrategyMap(InitAgentMap)
-	numAgents, agents, agentStateMap := stages.InitAgents(defStrategyMap, initGameConfig, viewPtr)
+	numAgents, agents, agentStateMap, inventoryMap := stages.InitAgents(defStrategyMap, initGameConfig, viewPtr)
 	gameConfig.InitialNumAgents = numAgents
 
 	globalState = &state.State{
 		MonsterHealth: gamemath.CalculateMonsterHealth(gameConfig.InitialNumAgents, gameConfig.Stamina, gameConfig.NumLevels, 1),
 		MonsterAttack: gamemath.CalculateMonsterDamage(gameConfig.InitialNumAgents, gameConfig.StartingHealthPoints, gameConfig.Stamina, gameConfig.ThresholdPercentage, gameConfig.NumLevels, 1),
 		AgentState:    agentStateMap,
+		InventoryMap:  inventoryMap,
 	}
 	agentMap = agents
 }
@@ -122,7 +123,10 @@ func runConfidenceVote(termLeft uint) uint {
 		"leader":    globalState.CurrentLeader,
 		"team":      leaderName,
 	}, "Confidence Vote")
-	if 100*votes[decision.Negative]/(votes[decision.Negative]+votes[decision.Positive]) > globalState.LeaderManifesto.OverthrowThreshold() {
+
+	if votes[decision.Negative]+votes[decision.Positive] == 0 {
+		return termLeft
+	} else if 100*votes[decision.Negative]/(votes[decision.Negative]+votes[decision.Positive]) > globalState.LeaderManifesto.OverthrowThreshold() {
 		logging.Log(logging.Info, nil, fmt.Sprintf("%s got ousted", globalState.CurrentLeader))
 		termLeft = runElection()
 	}

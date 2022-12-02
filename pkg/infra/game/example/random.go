@@ -7,6 +7,7 @@ import (
 	"infra/game/commons"
 	"infra/game/decision"
 	"infra/game/message"
+	"infra/game/state"
 	"infra/game/tally"
 	"infra/logging"
 
@@ -28,8 +29,8 @@ func (r *RandomAgent) FightResolution(baseAgent agent.BaseAgent) tally.Proposal[
 		if !ok {
 			break
 		}
-		rNum := rand.Intn(3)
-		switch rNum {
+
+		switch rand.Intn(3) {
 		case 0:
 			actions[id] = decision.Attack
 		case 1:
@@ -44,7 +45,7 @@ func (r *RandomAgent) FightResolution(baseAgent agent.BaseAgent) tally.Proposal[
 }
 
 func (r *RandomAgent) CreateManifesto(_ agent.BaseAgent) *decision.Manifesto {
-	manifesto := decision.NewManifesto(true, false, 10, 50)
+	manifesto := decision.NewManifesto(false, false, 10, 50)
 	return manifesto
 }
 
@@ -130,6 +131,20 @@ func (r *RandomAgent) HandleFightProposalRequest(_ *message.FightProposalMessage
 	default:
 		return false
 	}
+}
+
+func (r *RandomAgent) HandleUpdateWeapon(view *state.View, b agent.BaseAgent) decision.ItemIdx {
+	// weapons := b.AgentState().Weapons
+	// return decision.ItemIdx(rand.Intn(weapons.Len() + 1))
+
+	// 0th weapon has greatest attack points
+	return decision.ItemIdx(0)
+}
+
+func (r *RandomAgent) HandleUpdateShield(view *state.View, b agent.BaseAgent) decision.ItemIdx {
+	// shields := b.AgentState().Shields
+	// return decision.ItemIdx(rand.Intn(shields.Len() + 1))
+	return decision.ItemIdx(0)
 }
 
 func NewRandomAgent() agent.Strategy {
