@@ -7,6 +7,7 @@ import (
 	"infra/game/example"
 	"infra/game/stage/initialise"
 	"infra/game/state"
+	"infra/teams/team6"
 )
 
 /**
@@ -18,6 +19,7 @@ import (
  */
 var InitAgentMap = map[commons.ID]func() agent.Strategy{
 	"RANDOM": example.NewRandomAgent,
+	"TEAM6":  team6.NewTeam6Agent,
 	// "AggressiveAgent": NewProbabilisticAgent(0.1, 0.8, 0.1),
 	//	"DefensiveAgent": NewProbabilisticAgent(0.1, 0.8, 0.1),
 	// "CowardlyAgent": NewProbabilisticAgent(0.9, 0.05, 0.05),

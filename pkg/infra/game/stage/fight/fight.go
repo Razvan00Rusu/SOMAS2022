@@ -64,7 +64,7 @@ func AgentFightDecisions(state state.State, agents map[commons.ID]agent.Agent, p
 	for _, messages := range channelsMap {
 		messages <- *message.NewTaggedMessage("server", *message.NewMessage(message.Inform, nil), mID)
 	}
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(15 * time.Millisecond)
 	for id, c := range channelsMap {
 		closures[id] <- struct{}{}
 		go func(recv <-chan message.TaggedMessage) {

@@ -5,8 +5,8 @@ import (
 	"math"
 )
 
-func bound(f float64) float64 {
-	return math.Max(math.Min(f, 255.0), 0.0)
+func bound(f float64) uint8 {
+	return uint8(math.Max(math.Min(f*255.0, 255.0), 0.0))
 }
 
 func (r *Team6Agent) rateActions(
@@ -25,19 +25,29 @@ func (r *Team6Agent) rateActions(
 	if ok {
 		hpPercentage :=
 			float64(agentState.Hp) / float64(r.config.StartingHealthPoints)
-		cower = uint8(bound((1.0 - hpPercentage) * 255.0))
+		lowHpPercentage := 1.0 - hpPercentage
+		cower = bound(lowHpPercentage)
 
-		attackIncrease := agentState.Attack - r.config.StartingAttackStrength
+		attackIncrease := agentState.BonusAttack + agentState.Attack
 		attackPercentage :=
 			float64(attackIncrease) / float64(r.config.StartingAttackStrength)
-		attack = uint8(bound(attackPercentage*255.0 + 128.0))
+		// Don't attack if low hp
 
-		defendIncrease := agentState.Defense - r.config.StartingShieldStrength
+		defendIncrease := agentState.BonusDefense + agentState.Defense
 		defendPercentage :=
 			float64(defendIncrease) / float64(r.config.StartingShieldStrength)
-		defend = uint8(bound(defendPercentage*255.0 + 128.0))
 
-		//staminaIncrease := uint(agentState.Stamina) - r.config.Stamina
+		staminaPercentage :=
+			float64(agentState.Stamina) / float64(r.config.Stamina)
+
+		monsterHealth := view.MonsterHealth()
+
+		// Bias for attack on low hp monster
+		attBias := float64(agentState.Hp) / float64(monsterHealth)
+
+		defBias := 1.0 / attBias
+		attack = bound(attackPercentage * hpPercentage * staminaPercentage * attBias)
+		defend = bound(defendPercentage * staminaPercentage * hpPercentage * defBias)
 	}
 
 	return ActionDecision{

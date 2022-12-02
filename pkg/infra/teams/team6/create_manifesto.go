@@ -6,6 +6,6 @@ import (
 )
 
 func (r *Team6Agent) CreateManifesto(_ agent.BaseAgent) *decision.Manifesto {
-	manifesto := decision.NewManifesto(true, false, 10, 50)
+	manifesto := decision.NewManifesto(true, false, 10, 100)
 	return manifesto
 }
