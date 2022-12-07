@@ -2,6 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"sort"
+
+	"github.com/google/uuid"
 
 	"infra/config"
 	"infra/game/agent"
@@ -57,6 +61,7 @@ func initGame() {
 		MonsterAttack: gamemath.CalculateMonsterDamage(gameConfig.InitialNumAgents, gameConfig.StartingHealthPoints, gameConfig.Stamina, gameConfig.ThresholdPercentage, gameConfig.NumLevels, 1),
 		AgentState:    agentStateMap,
 		InventoryMap:  inventoryMap,
+		Defection:     gameConfig.Defection,
 	}
 	agentMap = agents
 }
@@ -79,8 +84,7 @@ func addCommsChannels() map[commons.ID]chan message.TaggedMessage {
 	}
 	immutableMap := createImmutableMapForChannels(res)
 	for id, a := range agentMap {
-		a.BaseAgent = agent.NewBaseAgent(agent.NewCommunication(res[id], *immutableMap.Delete(id)), id, a.BaseAgent.Name(), viewPtr)
-		(agentMap)[id] = a
+		a.SetCommunication(agent.NewCommunication(res[id], *immutableMap.Delete(id)))
 	}
 	return res
 }
@@ -98,19 +102,18 @@ func createImmutableMapForChannels[K constraints.Ordered, V any](peerChannels ma
 */
 
 func runElection() uint {
-	electedAgent, manifesto, percentage := election.HandleElection(globalState, agentMap, decision.VotingStrategy(gameConfig.VotingStrategy), gameConfig.VotingPreferences)
+	electedAgent, manifesto := election.HandleElection(globalState, agentMap, decision.VotingStrategy(gameConfig.VotingStrategy), gameConfig.VotingPreferences)
 	termLeft := manifesto.TermLength()
 	globalState.LeaderManifesto = manifesto
 	globalState.CurrentLeader = electedAgent
-	logging.Log(logging.Info, nil, fmt.Sprintf("[%d] New leader has been elected %s with %d%% of the vote", globalState.CurrentLevel, electedAgent, percentage))
 	updateView(viewPtr, globalState)
 	return termLeft
 }
 
-func runConfidenceVote(termLeft uint) uint {
+func runConfidenceVote(termLeft uint) (uint, map[decision.Intent]uint) {
 	votes := make(map[decision.Intent]uint)
 	for _, a := range agentMap {
-		votes[a.Strategy.HandleConfidencePoll(a.BaseAgent)]++
+		votes[a.Strategy.HandleConfidencePoll(*a.BaseAgent)]++
 	}
 	leader := agentMap[globalState.CurrentLeader]
 	leaderName := leader.BaseAgent.Name()
@@ -125,12 +128,12 @@ func runConfidenceVote(termLeft uint) uint {
 	}, "Confidence Vote")
 
 	if votes[decision.Negative]+votes[decision.Positive] == 0 {
-		return termLeft
+		return termLeft, votes
 	} else if 100*votes[decision.Negative]/(votes[decision.Negative]+votes[decision.Positive]) > globalState.LeaderManifesto.OverthrowThreshold() {
 		logging.Log(logging.Info, nil, fmt.Sprintf("%s got ousted", globalState.CurrentLeader))
 		termLeft = runElection()
 	}
-	return termLeft
+	return termLeft, votes
 }
 
 /*
@@ -151,4 +154,42 @@ func damageCalculation(fightRoundResult decision.FightResult) {
 		fight.DealDamage(damageTaken, fightRoundResult.CoweringAgents, agentMap, globalState)
 	}
 	*viewPtr = globalState.ToView()
+}
+
+/*
+	Hp Pool Helpers
+*/
+
+func checkHpPool() {
+	if globalState.HpPool >= globalState.MonsterHealth {
+		logging.Log(logging.Info, logging.LogField{
+			"Original HP Pool":  globalState.HpPool,
+			"Monster Health":    globalState.MonsterHealth,
+			"HP Pool Remaining": globalState.HpPool - globalState.MonsterHealth,
+		}, fmt.Sprintf("Skipping level %d through HP Pool", globalState.CurrentLevel))
+
+		globalState.HpPool -= globalState.MonsterHealth
+		globalState.MonsterHealth = 0
+	}
+}
+
+func generateLootPool(numAgents int, currentLevel uint) *state.LootPool {
+	makeItems := func() *commons.ImmutableList[state.Item] {
+		nItems := rand.Intn(numAgents)
+		items := make([]state.Item, nItems)
+		for i := 0; i < nItems; i++ {
+			items[i] = *state.NewItem(uuid.NewString(), currentLevel*uint(rand.Intn(3)+1))
+		}
+		sort.SliceStable(items, func(i, j int) bool {
+			return items[i].Value() > items[j].Value()
+		})
+		return commons.NewImmutableList(items)
+	}
+
+	return state.NewLootPool(
+		makeItems(),
+		makeItems(),
+		makeItems(),
+		makeItems(),
+	)
 }

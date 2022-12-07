@@ -22,7 +22,8 @@ func DealDamage(damageToDeal uint, agentsFighting []string, agentMap map[commons
 		newHP := commons.SaturatingSub(agentState.Hp, splitDamage)
 		if newHP == 0 {
 			// kill agent
-			// todo: prune peer channels somehow...
+			removeItems(globalState, globalState.AgentState[id])
+
 			delete(globalState.AgentState, id)
 			delete(agentMap, id)
 		} else {
@@ -40,9 +41,22 @@ func DealDamage(damageToDeal uint, agentsFighting []string, agentMap map[commons
 	}
 }
 
+func removeItems(globalState *state.State, agentState state.AgentState) {
+	removeItemsFromMap(globalState.InventoryMap.Weapons, agentState.Weapons)
+	removeItemsFromMap(globalState.InventoryMap.Shields, agentState.Shields)
+}
+
+func removeItemsFromMap(m map[commons.ID]uint, l immutable.List[state.Item]) {
+	iterator := l.Iterator()
+	for !iterator.Done() {
+		_, v := iterator.Next()
+		delete(m, v.Id())
+	}
+}
+
 func AgentFightDecisions(state state.State, agents map[commons.ID]agent.Agent, previousDecisions immutable.Map[commons.ID, decision.FightAction], channelsMap map[commons.ID]chan message.TaggedMessage) *tally.Tally[decision.FightAction] {
 	proposalVotes := make(chan commons.ProposalID)
-	proposalSubmission := make(chan tally.Proposal[decision.FightAction])
+	proposalSubmission := make(chan message.Proposal[decision.FightAction])
 	tallyClosure := make(chan struct{})
 
 	propTally := tally.NewTally(proposalVotes, proposalSubmission, tallyClosure)
@@ -59,17 +73,17 @@ func AgentFightDecisions(state state.State, agents map[commons.ID]agent.Agent, p
 			go (&a).HandleFight(agentState, previousDecisions, proposalVotes, nil, closure)
 		}
 	}
-	mID, _ := uuid.NewUUID()
+	mID := uuid.Nil
 
 	for _, messages := range channelsMap {
-		messages <- *message.NewTaggedMessage("server", *message.NewMessage(message.Inform, nil), mID)
+		messages <- *message.NewTaggedMessage("server", &message.StartFight{}, mID)
 	}
 	time.Sleep(15 * time.Millisecond)
 	for id, c := range channelsMap {
 		closures[id] <- struct{}{}
 		go func(recv <-chan message.TaggedMessage) {
 			for m := range recv {
-				switch m.Message().MType() {
+				switch m.Message().(type) {
 				case message.Request:
 					// todo: respond with nil thing here as we're closing! Or do we need to?
 					// maybe because we're closing there's no point...
@@ -84,10 +98,11 @@ func AgentFightDecisions(state state.State, agents map[commons.ID]agent.Agent, p
 	}
 
 	tallyClosure <- struct{}{}
+	close(tallyClosure)
 	return propTally
 }
 
-func HandleFightRound(state state.State, baseHealth uint, fightResult *decision.FightResult) state.State {
+func HandleFightRound(state state.State, baseHealth uint, fightResult *decision.FightResult) *state.State {
 	var attackSum uint
 	var shieldSum uint
 
@@ -128,5 +143,5 @@ func HandleFightRound(state state.State, baseHealth uint, fightResult *decision.
 
 	fightResult.AttackSum = attackSum
 	fightResult.ShieldSum = shieldSum
-	return state
+	return &state
 }

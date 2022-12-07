@@ -7,10 +7,8 @@ import (
 )
 
 type ProposalAction interface {
-	FightAction | LootDecision
+	FightAction | LootAction
 }
-
-type LootDecision struct{}
 
 type HPPoolDecision struct{}
 
@@ -88,6 +86,12 @@ type VotingStrategy uint
 
 const (
 	SingleChoicePlurality = iota
+	BordaCount
 )
+
+type HpPoolDonation struct {
+	AgentID  commons.ID
+	Donation uint
+}
 
 type ItemIdx uint

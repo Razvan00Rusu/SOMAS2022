@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"math"
-	"math/rand"
-
 	"infra/game/agent"
 	"infra/game/commons"
 	"infra/game/decision"
@@ -14,10 +11,13 @@ import (
 	"infra/game/message"
 	"infra/game/stage/discussion"
 	"infra/game/stage/fight"
+	"infra/game/stage/hppool"
 	"infra/game/stage/loot"
 	"infra/game/stages"
 	"infra/logging"
+	"infra/teams/team1"
 	"infra/teams/team6"
+	"math"
 
 	"github.com/benbjohnson/immutable"
 )
@@ -25,6 +25,7 @@ import (
 var InitAgentMap = map[commons.ID]func() agent.Strategy{
 	"RANDOM": example.NewRandomAgent,
 	"TEAM6":  team6.NewTeam6Agent,
+	"TEAM1":  team1.NewSocialAgent,
 }
 
 func main() {
@@ -48,26 +49,29 @@ func startGameLoop() {
 	for globalState.CurrentLevel = 1; globalState.CurrentLevel < (gameConfig.NumLevels + 1); globalState.CurrentLevel++ {
 		// Election Stage
 		_, alive := agentMap[globalState.CurrentLeader]
+		var votes map[decision.Intent]uint
 		if termLeft == 0 || !alive {
 			termLeft = runElection()
 		} else {
-			termLeft = runConfidenceVote(termLeft)
+			termLeft, votes = runConfidenceVote(termLeft)
 		}
 
-		// allow agents to change the weapon and the shield in use
-		updatedGlobalState := loot.UpdateItems(*globalState, agentMap)
-		globalState = &updatedGlobalState
+		checkHpPool()
 
-		// TODO: Fight Discussion Stage
+		// allow agents to change the weapon and the shield in use
+		globalState = loot.UpdateItems(*globalState, agentMap)
+		*viewPtr = globalState.ToView()
 
 		// Battle Rounds
 		// TODO: Ambiguity in specification - do agents have a upper limit of rounds to try and slay the monster?
+		fightResultSlice := make([]decision.ImmutableFightResult, 0)
+		roundNum := uint(0)
 		for globalState.MonsterHealth != 0 {
 			// find out the maximum attack from alive agents
-			var maxAttack uint = 0
+			maxAttack := uint(0)
 			for _, agentState := range globalState.AgentState {
 				if agentState.Hp > 0 {
-					maxAttack = maxAttack + agentState.TotalAttack(*globalState)
+					maxAttack += agentState.TotalAttack(*globalState)
 				}
 			}
 
@@ -75,10 +79,9 @@ func startGameLoop() {
 			for u, action := range decisionMap {
 				decisionMapView.Set(u, action)
 			}
-			tally := stages.AgentFightDecisions(*globalState, agentMap, *decisionMapView.Map(), channelsMap)
-			fightActions := discussion.ResolveFightDiscussion(agentMap, agentMap[globalState.CurrentLeader], globalState.LeaderManifesto, tally)
-			stateAfterFight := fight.HandleFightRound(*globalState, gameConfig.StartingHealthPoints, &fightActions)
-			globalState = &stateAfterFight
+			fightTally := stages.AgentFightDecisions(*globalState, agentMap, *decisionMapView.Map(), channelsMap)
+			fightActions := discussion.ResolveFightDiscussion(*globalState, agentMap, agentMap[globalState.CurrentLeader], globalState.LeaderManifesto, fightTally)
+			globalState = fight.HandleFightRound(*globalState, gameConfig.StartingHealthPoints, &fightActions)
 			*viewPtr = globalState.ToView()
 
 			logging.Log(logging.Info, logging.LogField{
@@ -101,24 +104,30 @@ func startGameLoop() {
 				logging.Log(logging.Info, nil, fmt.Sprintf("Lost on level %d  with %d remaining", globalState.CurrentLevel, len(agentMap)))
 				return
 			}
+			fightResultSlice = append(fightResultSlice, *decision.NewImmutableFightResult(fightActions, roundNum))
+			roundNum++
 		}
 
 		// TODO: Loot Discussion Stage
-		weaponLoot, shieldLoot := make([]uint, len(agentMap)), make([]uint, len(agentMap))
 
-		for i := range weaponLoot {
-			weaponLoot[i] = globalState.CurrentLevel * uint(rand.Intn(3))
-			shieldLoot[i] = globalState.CurrentLevel * uint(rand.Intn(3))
-		}
+		lootPool := generateLootPool(len(agentMap), globalState.CurrentLevel)
+		lootTally := stages.AgentLootDecisions(*globalState, *lootPool, agentMap, channelsMap)
+		lootActions := discussion.ResolveLootDiscussion(*globalState, agentMap, lootPool, agentMap[globalState.CurrentLeader], globalState.LeaderManifesto, lootTally)
+		globalState = loot.HandleLootAllocation(*globalState, &lootActions, lootPool)
 
-		newGlobalState := stages.AgentLootDecisions(*globalState, agentMap, weaponLoot, shieldLoot)
-		globalState = &newGlobalState
+		channelsMap = addCommsChannels()
+
+		hppool.UpdateHpPool(agentMap, globalState)
 
 		// TODO: End of level Updates
 		termLeft--
 		globalState.MonsterHealth, globalState.MonsterAttack = gamemath.GetNextLevelMonsterValues(*gameConfig, globalState.CurrentLevel+1)
 		*viewPtr = globalState.ToView()
 		logging.Log(logging.Info, nil, fmt.Sprintf("------------------------------ Level %d Ended ----------------------------", globalState.CurrentLevel))
+
+		immutableFightRounds := commons.NewImmutableList(fightResultSlice)
+		votesResult := commons.MapToImmutable(votes)
+		stages.UpdateInternalStates(agentMap, globalState, immutableFightRounds, &votesResult)
 	}
 	logging.Log(logging.Info, nil, fmt.Sprintf("Congratulations, The Peasants have escaped the pit with %d remaining.", len(agentMap)))
 }

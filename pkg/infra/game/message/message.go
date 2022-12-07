@@ -1,60 +1,75 @@
 package message
 
-import (
-	"infra/game/commons"
-	"infra/game/decision"
+import "infra/game/state"
 
-	"github.com/google/uuid"
-)
-
-type Payload interface {
-	isPayload()
+type Message interface {
+	sealedMessage()
 }
 
-type Type int64
+type Inform interface {
+	Message
+	sealedInform()
+}
 
-const (
-	Inform Type = iota
+type Request interface {
+	Message
+	sealedRequest()
+}
+
+type FightRequest interface {
 	Request
-	Proposal
-)
-
-type Message struct {
-	mType   Type
-	payload Payload
+	sealedFightRequest()
 }
 
-func NewMessage(mType Type, payload Payload) *Message {
-	return &Message{mType: mType, payload: payload}
+type LootRequest interface {
+	Request
+	sealedLootRequest()
 }
 
-func (m Message) MType() Type {
-	return m.mType
+type FightInform interface {
+	Inform
+	sealedFightInform()
 }
 
-func (m Message) Payload() Payload {
-	return m.payload
+type LootInform interface {
+	Inform
+	sealedLootInform()
 }
 
-type TaggedMessage struct {
-	sender  commons.ID
-	message Message
-	mID     uuid.UUID
+type StartLoot struct {
+	state.LootPool
 }
 
-func NewTaggedMessage(sender commons.ID, message Message, mID uuid.UUID) *TaggedMessage {
-	return &TaggedMessage{sender: sender, message: message, mID: mID}
+func NewStartLoot(lootPool state.LootPool) *StartLoot {
+	return &StartLoot{LootPool: lootPool}
 }
 
-func (t TaggedMessage) Sender() commons.ID {
-	return t.sender
+func (s StartLoot) sealedMessage() {
+	//TODO implement me
+	panic("implement me")
 }
 
-func (t TaggedMessage) Message() Message {
-	return t.message
+func (s StartLoot) sealedInform() {
+	//TODO implement me
+	panic("implement me")
 }
 
-type ActionMessage struct {
-	Action decision.FightAction
-	Sender commons.ID
+func (s StartLoot) sealedLootInform() {
+	//TODO implement me
+	panic("implement me")
+}
+
+type StartFight struct{}
+
+func (s StartFight) sealedMessage() {
+	// TODO implement me
+	panic("implement me")
+}
+
+func (s StartFight) sealedInform() {
+	panic("implement me")
+}
+
+func (s StartFight) sealedFightInform() {
+	panic("implement me")
 }

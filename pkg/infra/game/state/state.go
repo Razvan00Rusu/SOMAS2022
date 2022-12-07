@@ -7,6 +7,27 @@ import (
 	"github.com/benbjohnson/immutable"
 )
 
+type Defector struct {
+	fight bool
+	loot  bool
+}
+
+func (d *Defector) SetFight(fight bool) {
+	d.fight = fight
+}
+
+func (d *Defector) SetLoot(loot bool) {
+	d.loot = loot
+}
+
+func NewDefector() *Defector {
+	return &Defector{}
+}
+
+func (d *Defector) IsDefector() bool {
+	return d.fight || d.loot
+}
+
 type AgentState struct {
 	Hp          uint
 	Stamina     uint
@@ -14,49 +35,50 @@ type AgentState struct {
 	Defense     uint
 	WeaponInUse commons.ItemID
 	ShieldInUse commons.ItemID
-	Weapons     immutable.List[InventoryItem]
-	Shields     immutable.List[InventoryItem]
+	Weapons     immutable.List[Item]
+	Shields     immutable.List[Item]
+	Defector    Defector
 }
 
-func (a AgentState) BonusAttack(state State) uint {
-	if val, ok := state.InventoryMap.Weapons[a.WeaponInUse]; ok {
+func (s *AgentState) BonusAttack(state State) uint {
+	if val, ok := state.InventoryMap.Weapons[s.WeaponInUse]; ok {
 		return val
 	}
 	return 0
 }
 
-func (a AgentState) BonusDefense(state State) uint {
-	if val, ok := state.InventoryMap.Shields[a.ShieldInUse]; ok {
+func (s *AgentState) BonusDefense(state State) uint {
+	if val, ok := state.InventoryMap.Shields[s.ShieldInUse]; ok {
 		return val
 	}
 	return 0
 }
 
-func (a AgentState) TotalAttack(state State) uint {
-	return a.Attack + a.BonusAttack(state)
+func (s *AgentState) TotalAttack(state State) uint {
+	return s.Attack + s.BonusAttack(state)
 }
 
-func (a AgentState) TotalDefense(state State) uint {
-	return a.Defense + a.BonusDefense(state)
+func (s *AgentState) TotalDefense(state State) uint {
+	return s.Defense + s.BonusDefense(state)
 }
 
-func (s *AgentState) AddWeapon(weapon InventoryItem) {
-	s.Weapons = Add2Inventory(s.Weapons, weapon)
+func (s *AgentState) AddWeapon(weapon Item) {
+	s.Weapons = addToInventory(s.Weapons, weapon)
 }
 
-func (s *AgentState) AddShield(shield InventoryItem) {
-	s.Shields = Add2Inventory(s.Shields, shield)
+func (s *AgentState) AddShield(shield Item) {
+	s.Shields = addToInventory(s.Shields, shield)
 }
 
 func (s *AgentState) ChangeWeaponInUse(weaponIdx decision.ItemIdx) {
 	if int(weaponIdx) < s.Weapons.Len() {
-		s.WeaponInUse = s.Weapons.Get(int(weaponIdx)).ID
+		s.WeaponInUse = s.Weapons.Get(int(weaponIdx)).Id()
 	}
 }
 
 func (s *AgentState) ChangeShieldInUse(shieldIdx decision.ItemIdx) {
 	if int(shieldIdx) < s.Shields.Len() {
-		s.ShieldInUse = s.Shields.Get(int(shieldIdx)).ID
+		s.ShieldInUse = s.Shields.Get(int(shieldIdx)).Id()
 	}
 }
 
@@ -69,4 +91,5 @@ type State struct {
 	InventoryMap    InventoryMap
 	CurrentLeader   commons.ID
 	LeaderManifesto decision.Manifesto
+	Defection       bool
 }
