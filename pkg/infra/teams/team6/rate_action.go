@@ -9,6 +9,7 @@ func bound(f float64) uint8 {
 	return uint8(math.Max(math.Min(f*255.0, 255.0), 0.0))
 }
 
+// TODO: Integrate this logic into Rules inside FightResolution
 func (r *Team6Agent) rateActions(
 	id string,
 	base agent.BaseAgent,

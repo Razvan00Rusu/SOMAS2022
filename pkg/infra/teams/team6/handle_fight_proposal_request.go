@@ -9,13 +9,12 @@ import (
 	"github.com/benbjohnson/immutable"
 )
 
+// TODO
 func (r *Team6Agent) HandleFightProposalRequest(
-	msg *message.FightProposalMessage,
+	proposal message.Proposal[decision.FightAction],
 	base agent.BaseAgent,
 	my *immutable.Map[commons.ID, decision.FightAction],
 ) bool {
-	if msg.Proposal() == *my {
-		println("My Prop!")
-	}
+
 	return true
 }

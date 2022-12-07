@@ -8,7 +8,7 @@ import (
 )
 
 func (r *Team6Agent) HandleFightProposal(
-	_ *message.FightProposalMessage,
+	_ message.Proposal[decision.FightAction],
 	_ agent.BaseAgent,
 ) decision.Intent {
 	intent := rand.Intn(2)

@@ -10,8 +10,9 @@ import (
 	"github.com/benbjohnson/immutable"
 )
 
+// TODO
 func (r *Team6Agent) HandleFightInformation(
-	msg message.TaggedMessage,
+	msg message.TaggedInformMessage[message.FightInform],
 	baseAgent agent.BaseAgent,
 	_ *immutable.Map[commons.ID, decision.FightAction],
 ) {
@@ -21,10 +22,5 @@ func (r *Team6Agent) HandleFightInformation(
 		"Cowering")
 
 	prop := r.FightResolution(baseAgent)
-	view := baseAgent.View()
-	_ = baseAgent.SendBlockingMessage(
-		view.CurrentLeader(),
-		*message.NewMessage(
-			message.Proposal,
-			*message.NewProposalPayload(prop.Proposal())))
+	_ = baseAgent.SendFightProposalToLeader(prop)
 }
