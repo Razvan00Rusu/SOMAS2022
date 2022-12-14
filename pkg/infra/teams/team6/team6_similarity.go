@@ -1,7 +1,6 @@
 package team6
 
 import (
-	"fmt"
 	"infra/game/commons"
 	"infra/game/decision"
 	"infra/game/message/proposal"
@@ -35,14 +34,10 @@ func ProposalSimilarity[A decision.ProposalAction](rules1 commons.ImmutableList[
 		decision1 := rule1(agentState)
 		decision2 := rule2(agentState)
 
-		fmt.Println(decision1, decision2)
-
 		if decision1 == decision2 {
 			same++
 		}
 	}
-
-	fmt.Printf("Number the same: %v", same)
 
 	return float32(same) / float32(total)
 }
