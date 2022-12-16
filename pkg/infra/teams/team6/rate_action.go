@@ -9,7 +9,7 @@ func bound(f float64) uint16 {
 	return uint16(math.Max(math.Min(f*65535.0, 65535.0), 0.0))
 }
 
-func (r *Team6Agent) rateActions(
+func (r *Perry) rateActions(
 	id string,
 	base agent.BaseAgent,
 ) ActionDecision {

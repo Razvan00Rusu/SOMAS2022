@@ -2,20 +2,17 @@ package team6
 
 import (
 	"infra/game/agent"
-	"infra/game/commons"
 	"infra/game/decision"
 	"infra/game/message"
 
 	"github.com/benbjohnson/immutable"
 )
 
-func (r *Team6Agent) HandleFightProposalRequest(
-	msg *message.FightProposalMessage,
+func (r *Perry) HandleFightProposalRequest(
+	prop message.Proposal[decision.FightAction],
 	base agent.BaseAgent,
-	my *immutable.Map[commons.ID, decision.FightAction],
+	log *immutable.Map[string, decision.FightAction],
 ) bool {
-	if msg.Proposal() == *my {
-		println("My Prop!")
-	}
+	// What should this do?
 	return true
 }

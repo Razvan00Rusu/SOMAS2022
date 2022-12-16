@@ -1,18 +1,18 @@
 package team6
 
-type Team6AgentOpinion struct {
+type PerryOpinion struct {
 	generosity int16 // Likeliness to accept trades beneficial to us
 	bravery    int16 // Likeliness to fight
 	similarity int16 // Likeliness to fight when we would fight
 	leadership int16 // Success rating if the agent has been a leader
 }
 
-func newOpinion() *Team6AgentOpinion {
-	opinion := Team6AgentOpinion{}
+func newOpinion() *PerryOpinion {
+	opinion := PerryOpinion{}
 	return &opinion
 }
 
-func (r *Team6AgentOpinion) AddGenerosity(i int) {
+func (r *PerryOpinion) AddGenerosity(i int) {
 	generosity := int(r.generosity) + i
 	if generosity > 32767 {
 		r.generosity = 32767
@@ -23,7 +23,7 @@ func (r *Team6AgentOpinion) AddGenerosity(i int) {
 	}
 }
 
-func (r *Team6AgentOpinion) AddBravery(i int) {
+func (r *PerryOpinion) AddBravery(i int) {
 	bravery := int(r.bravery) + i
 	if bravery > 32767 {
 		r.bravery = 32767
@@ -34,7 +34,7 @@ func (r *Team6AgentOpinion) AddBravery(i int) {
 	}
 }
 
-func (r *Team6AgentOpinion) AddSimilarity(i int) {
+func (r *PerryOpinion) AddSimilarity(i int) {
 	similarity := int(r.similarity) + i
 	if similarity > 32767 {
 		r.similarity = 32767
@@ -45,7 +45,7 @@ func (r *Team6AgentOpinion) AddSimilarity(i int) {
 	}
 }
 
-func (r *Team6AgentOpinion) AddLeadership(i int) {
+func (r *PerryOpinion) AddLeadership(i int) {
 	leadership := int(r.leadership) + i
 	if leadership > 32767 {
 		r.leadership = 32767

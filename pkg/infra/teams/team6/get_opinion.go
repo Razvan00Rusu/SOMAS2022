@@ -1,6 +1,6 @@
 package team6
 
-func (r *Team6Agent) getOpinion(id string) *Team6AgentOpinion {
+func (r *Perry) getOpinion(id string) *PerryOpinion {
 	opinion, ok := r.opinions[id]
 	if !ok {
 		opinion = newOpinion()

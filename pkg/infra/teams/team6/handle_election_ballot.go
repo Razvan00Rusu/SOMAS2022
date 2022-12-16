@@ -6,7 +6,7 @@ import (
 	"sort"
 )
 
-func (r *Team6Agent) HandleElectionBallot(
+func (r *Perry) HandleElectionBallot(
 	b agent.BaseAgent,
 	_ *decision.ElectionParams,
 ) decision.Ballot {

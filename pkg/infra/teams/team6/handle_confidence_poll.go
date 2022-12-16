@@ -8,7 +8,7 @@ import (
 // proportion of agents we would rather have as leader to vote yes
 const VONC_THRESHOLD = 0.5
 
-func (r *Team6Agent) HandleConfidencePoll(
+func (r *Perry) HandleConfidencePoll(
 	base agent.BaseAgent,
 ) decision.Intent {
 	view := base.View()

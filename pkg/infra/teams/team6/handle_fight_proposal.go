@@ -4,16 +4,21 @@ import (
 	"infra/game/agent"
 	"infra/game/decision"
 	"infra/game/message"
-	"math/rand"
 )
 
-func (r *Team6Agent) HandleFightProposal(
-	_ *message.FightProposalMessage,
-	_ agent.BaseAgent,
+const ABSTAIN_THRESHOLD = 0.5
+const SIMILARITY_THRESHOLD = 0.75
+
+func (r *Perry) HandleFightProposal(
+	prop message.Proposal[decision.FightAction],
+	base agent.BaseAgent,
 ) decision.Intent {
-	intent := rand.Intn(2)
-	if intent == 0 {
+	rules := prop.Rules()
+	similarity := ProposalSimilarity[decision.FightAction](rules, r.nextFights)
+	if similarity >= SIMILARITY_THRESHOLD {
 		return decision.Positive
+	} else if similarity >= ABSTAIN_THRESHOLD {
+		return decision.Abstain
 	} else {
 		return decision.Negative
 	}

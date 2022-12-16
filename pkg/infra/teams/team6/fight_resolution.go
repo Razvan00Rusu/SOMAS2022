@@ -4,19 +4,21 @@ import (
 	"infra/game/agent"
 	"infra/game/commons"
 	"infra/game/decision"
-	"infra/game/tally"
+	"infra/game/message/proposal"
 	"math"
 
-	"github.com/google/uuid"
+	"github.com/benbjohnson/immutable"
 )
 
 func normalise(f float64) float64 {
 	return (math.Log10(f+0.1) + 1.0) / 2.1
 }
 
-func (r *Team6Agent) FightResolution(
+func (r *Perry) FightResolution(
 	baseAgent agent.BaseAgent,
-) tally.Proposal[decision.FightAction] {
+	prop commons.ImmutableList[proposal.Rule[decision.FightAction]],
+	proposedActions immutable.Map[string, decision.FightAction],
+) immutable.Map[commons.ID, decision.FightAction] {
 	actions := make(map[commons.ID]decision.FightAction)
 	ratings := make(map[commons.ID]ActionDecision)
 	view := baseAgent.View()
@@ -71,7 +73,5 @@ func (r *Team6Agent) FightResolution(
 		//println(action.attack, action.cower, action.defend)
 		actions[id] = action.highestRatedAction()
 	}
-	newUUID, _ := uuid.NewUUID()
-	prop := tally.NewProposal(newUUID.String(), commons.MapToImmutable(actions))
-	return *prop
+	return commons.MapToImmutable(actions)
 }
