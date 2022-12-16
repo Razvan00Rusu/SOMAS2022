@@ -1,10 +1,10 @@
 package team6
 
 type Team6AgentOpinion struct {
-	generosity int8 // Likeliness to accept trades beneficial to us
-	bravery    int8 // Likeliness to fight
-	similarity int8 // Likeliness to fight when we would fight
-	leadership int8 // Success rating if the agent has been a leader
+	generosity int16 // Likeliness to accept trades beneficial to us
+	bravery    int16 // Likeliness to fight
+	similarity int16 // Likeliness to fight when we would fight
+	leadership int16 // Success rating if the agent has been a leader
 }
 
 func newOpinion() *Team6AgentOpinion {
@@ -14,44 +14,44 @@ func newOpinion() *Team6AgentOpinion {
 
 func (r *Team6AgentOpinion) AddGenerosity(i int) {
 	generosity := int(r.generosity) + i
-	if generosity > 127 {
-		r.generosity = 127
-	} else if generosity < -128 {
-		r.generosity = -128
+	if generosity > 32767 {
+		r.generosity = 32767
+	} else if generosity < -32768 {
+		r.generosity = -32768
 	} else {
-		r.generosity = int8(generosity)
+		r.generosity = int16(generosity)
 	}
 }
 
 func (r *Team6AgentOpinion) AddBravery(i int) {
 	bravery := int(r.bravery) + i
-	if bravery > 127 {
-		r.bravery = 127
-	} else if bravery < -128 {
-		r.bravery = -128
+	if bravery > 32767 {
+		r.bravery = 32767
+	} else if bravery < -32768 {
+		r.bravery = -32768
 	} else {
-		r.bravery = int8(bravery)
+		r.bravery = int16(bravery)
 	}
 }
 
 func (r *Team6AgentOpinion) AddSimilarity(i int) {
 	similarity := int(r.similarity) + i
-	if similarity > 127 {
-		r.similarity = 127
-	} else if similarity < -128 {
-		r.similarity = -128
+	if similarity > 32767 {
+		r.similarity = 32767
+	} else if similarity < -32768 {
+		r.similarity = -32768
 	} else {
-		r.similarity = int8(similarity)
+		r.similarity = int16(similarity)
 	}
 }
 
 func (r *Team6AgentOpinion) AddLeadership(i int) {
 	leadership := int(r.leadership) + i
-	if leadership > 127 {
-		r.leadership = 127
-	} else if leadership < -128 {
-		r.leadership = -128
+	if leadership > 32767 {
+		r.leadership = 32767
+	} else if leadership < -32768 {
+		r.leadership = -32768
 	} else {
-		r.leadership = int8(leadership)
+		r.leadership = int16(leadership)
 	}
 }

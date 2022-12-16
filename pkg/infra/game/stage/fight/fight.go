@@ -90,7 +90,7 @@ func AgentFightDecisions(state state.State, agents map[commons.ID]agent.Agent, p
 func HandleFightRound(state state.State, baseHealth uint, fightResult *decision.FightResult) state.State {
 	var attackSum uint
 	var shieldSum uint
-
+	done := false
 	for agentID, d := range fightResult.Choices {
 		agentState := state.AgentState[agentID]
 
@@ -100,7 +100,13 @@ func HandleFightRound(state state.State, baseHealth uint, fightResult *decision.
 			if agentState.Stamina > agentState.BonusAttack(state) {
 				fightResult.AttackingAgents = append(fightResult.AttackingAgents, agentID)
 				attackSum += agentState.TotalAttack(state)
+				preStamina := agentState.Stamina
 				agentState.Stamina = commons.SaturatingSub(agentState.Stamina, agentState.BonusAttack(state))
+				postStamina := agentState.Stamina
+				if !done {
+					println("Stamina:", preStamina, "=>", postStamina, "(", preStamina-postStamina, ")")
+					done = true
+				}
 			} else {
 				fightResult.CoweringAgents = append(fightResult.CoweringAgents, agentID)
 				fightResult.Choices[agentID] = decision.Cower
